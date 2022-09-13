@@ -1,14 +1,18 @@
 import 'dart:async';
+import 'dart:ffi';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:football_app/presentation/bottom_bar_screen/live_score_screen.dart';
 import 'package:football_app/presentation/bottom_bar_screen/match_screen.dart';
 import 'package:football_app/presentation/bottom_bar_screen/standing_screen.dart';
+import 'package:football_app/theme/theme_notifier.dart';
 import 'package:get/get.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
+import 'package:provider/provider.dart';
 import 'package:rating_dialog/rating_dialog.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../utils.dart';
@@ -21,8 +25,10 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+
   final InAppPurchase _inAppPurchase = InAppPurchase.instance;
   bool _isAvailable = false;
+  SharedPreferences? _sharedPreferences;
   // Query products from google play store
   late  List<ProductDetails> _products   = [];
   // Query past purchases of the user
@@ -31,6 +37,8 @@ class _HomeScreenState extends State<HomeScreen> {
   late BannerAd _bannerAd;
   final String testId = "com.taki.dz.app";
   var _currentIndex = 0;
+  var isOn = false;
+  Icon icon = const Icon(Icons.toggle_off,color: Colors.black54,);
   final _screens = [
     const StandingScreen(),
     const LiveScoreScreen(),
@@ -42,6 +50,20 @@ class _HomeScreenState extends State<HomeScreen> {
     super.initState();
     loadAd();
     _initialize();
+  }
+
+  void initPrefs() async {
+    _sharedPreferences = await SharedPreferences.getInstance();
+    if(_sharedPreferences?.getString("theme") == "light"){
+      setState(() {
+        isOn = false;
+        icon  = const Icon(Icons.toggle_off,color: Colors.black54);
+      });
+    }
+    else if (_sharedPreferences?.getString("theme") == "dark"){
+      isOn = true;
+      icon = const Icon(Icons.toggle_on,color: Colors.deepOrange);
+    }
   }
 
   void loadAd(){
@@ -119,71 +141,78 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return  Scaffold(
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _currentIndex,
-        selectedItemColor: Colors.white,
-        unselectedItemColor: Colors.white54,
-        items:  [
-          BottomNavigationBarItem(icon: Image.asset("assets/images/list.png",
-          height: 20,width: 20,color: Colors.white,),label: 'Rank'),
-          BottomNavigationBarItem(icon: Image.asset("assets/images/score.png",
-            height: 20,width: 20,color: Colors.white,),label: 'Score'),
-          BottomNavigationBarItem(icon: Image.asset("assets/images/news.png",
-          height: 20,width: 20,color: Colors.white,),label: 'News'),
-        ],
-        onTap: (index){
-          setState(() {
-            _currentIndex = index;
-          });
-        },
-      ),
-      drawer : createDrawer(context),
-      backgroundColor: const Color(0xFF16213E),
-      body: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.only(left: 8,right: 16,top: 16,bottom: 16),
-              child: Row(
-                children:  [
-                  StatefulBuilder(
-                    builder: (context,_){
-                      return IconButton(onPressed: (){
-                         Scaffold.of(context).openDrawer();
-                      }, icon: Image.asset("assets/images/drawer_icon.png",height: 20,width: 20,color: Colors.white,));
-                    },
-                  ),
-                  const Expanded(child: Text('La Liga',style: TextStyle(fontSize: 20,color: Colors.white,fontFamily: 'mont_bold'),)),
-                  GestureDetector(
-                    onTap: (){
-                      _buyProduct();
-                    },
-                    child: Image.asset("assets/images/remove_ad.png",height: 25,width: 25,color: Colors.blueAccent,),
-                  )
+    return  Consumer<BlackThemeNotifier>(
+        builder: (context , provider , _){
+          return MaterialApp(
+            theme: provider.getTheme(),
+            home: Scaffold(
+              bottomNavigationBar: BottomNavigationBar(
+                currentIndex: _currentIndex,
+                selectedItemColor: Colors.white,
+                unselectedItemColor: Colors.white54,
+                items:  [
+                  BottomNavigationBarItem(icon: Image.asset("assets/images/list.png",
+                    height: 20,width: 20,color: Colors.white,),label: 'Rank'),
+                  BottomNavigationBarItem(icon: Image.asset("assets/images/score.png",
+                    height: 20,width: 20,color: Colors.white,),label: 'Score'),
+                  BottomNavigationBarItem(icon: Image.asset("assets/images/news.png",
+                    height: 20,width: 20,color: Colors.white,),label: 'News'),
                 ],
+                onTap: (index){
+                  setState(() {
+                    _currentIndex = index;
+                  });
+                },
+              ),
+              drawer : createDrawer(context,isOn),
+              backgroundColor: const Color(0xFF16213E),
+              body: SafeArea(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.only(left: 8,right: 16,top: 16,bottom: 16),
+                      child: Row(
+                        children:  [
+                          StatefulBuilder(
+                            builder: (context,_){
+                              return IconButton(onPressed: (){
+                                Scaffold.of(context).openDrawer();
+                              }, icon: Image.asset("assets/images/drawer_icon.png",height: 20,width: 20,color: Colors.white,));
+                            },
+                          ),
+                          const Expanded(child: Text('La Liga',style: TextStyle(fontSize: 20,color: Colors.white,fontFamily: 'mont_bold'),)),
+                          GestureDetector(
+                            onTap: (){
+                              _buyProduct();
+                            },
+                            child: Image.asset("assets/images/remove_ad.png",height: 25,width: 25,color: Colors.blueAccent,),
+                          )
+                        ],
+                      ),
+                    ),
+                    Expanded(
+                      child: _screens[_currentIndex],
+                    ),
+                    AdWidget(ad: _bannerAd)
+                  ],
+                ),
               ),
             ),
-            Expanded(
-              child: _screens[_currentIndex],
-            ),
-            AdWidget(ad: _bannerAd)
-          ],
-        ),
-      ),
+          );
+        }
     );
   }
 }
 
-Widget createDrawer(BuildContext context){
+Widget createDrawer(BuildContext context,bool isOn){
   return Drawer(
     backgroundColor: const Color(0xFF16213E),
     child: Column(
       children:  [
          DrawerHeader(
           child: Center(
-            child: Image.asset("assets/images/laliga.png",height: 60,width: 60,),
+            child: Image.asset("assets/images/laliga.png",height: 100,width: 100,),
           ),
         ),
         Column(
@@ -208,6 +237,20 @@ Widget createDrawer(BuildContext context){
               },
             ),
             const Divider(color: Colors.white,),
+            StatefulBuilder(
+              builder: (context,state){
+                 return Row(
+                   children:  [
+                     Expanded(child: ListTile(leading : const Icon(Icons.dark_mode_outlined),title: Text('App Theme'),)),
+                     SwitchListTile(
+                      value: isOn,
+                      onChanged: (value){
+
+                     })
+                   ],
+                 );
+              },
+            )
           ],
         )
       ],
