@@ -3,15 +3,37 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:football_app/bloc/bloc_event.dart';
 import 'package:football_app/bloc/bloc_state.dart';
 import 'package:football_app/bloc/main_bloc.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-class StandingScreen extends StatefulWidget {
-  const StandingScreen({Key? key}) : super(key: key);
+class StandingsScreen extends StatefulWidget {
+  const StandingsScreen({Key? key}) : super(key: key);
 
   @override
-  State<StandingScreen> createState() => _StandingScreenState();
+  State<StandingsScreen> createState() => _StandingsScreenState();
 }
 
-class _StandingScreenState extends State<StandingScreen> {
+class _StandingsScreenState extends State<StandingsScreen> {
+  SharedPreferences? _sharedPreferences;
+  var currentTheme  = "";
+  @override
+  void initState() {
+    super.initState();
+    initPrefs();
+  }
+
+  void initPrefs() async {
+    _sharedPreferences = await SharedPreferences.getInstance();
+    if(_sharedPreferences?.getString("theme") == "light"){
+      setState(() {
+        currentTheme = "light";
+      });
+    }
+    else if (_sharedPreferences?.getString("theme") == "dark"){
+      currentTheme = "dark";
+    }
+  }
+
+
   @override
   Widget build(BuildContext context) {
     BlocProvider.of<MainBloc>(context).add(AppEvents.standings);
@@ -26,23 +48,23 @@ class _StandingScreenState extends State<StandingScreen> {
                     padding: const EdgeInsets.all(8.0),
                     child: Row(
                       children: [
-                        const Text('#',style: TextStyle(color: Colors.white,fontFamily: 'mont_bold'),),
+                        const Text('#',style: TextStyle(fontFamily: 'mont_bold'),),
                         const SizedBox(width: 15,),
-                        Image.asset("assets/images/team.png",height: 20,width: 20,color: Colors.white,),
+                        Image.asset("assets/images/team.png",height: 20,width: 20,color: currentTheme == "light" ? Colors.black: Colors.white,),
                         const SizedBox(width: 15,),
-                        const Text('Team', style: TextStyle(color: Colors.white,fontFamily: 'mont_bold'),)
+                        const Text('Team', style: TextStyle(fontFamily: 'mont_bold'),)
                       ],
                     ),
                   )),
               Expanded(
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: const [
-                      Text('P',style: TextStyle(color: Colors.white,fontFamily: 'mont_bold'),),
-                      Text('W',style: TextStyle(color: Colors.white,fontFamily: 'mont_bold'),),
-                      Text('D',style: TextStyle(color: Colors.white,fontFamily: 'mont_bold'),),
-                      Text('L',style: TextStyle(color: Colors.white,fontFamily: 'mont_bold'),),
-                      Text('PT',style: TextStyle(color: Colors.deepOrange,fontFamily: 'mont_bold'),),
+                    children:  [
+                      const Text('P',style: TextStyle(fontFamily: 'mont_bold'),),
+                      const Text('W',style: TextStyle(fontFamily: 'mont_bold'),),
+                      const Text('D',style: TextStyle(fontFamily: 'mont_bold'),),
+                      const Text('L',style: TextStyle(fontFamily: 'mont_bold'),),
+                      Text('PT',style: TextStyle(fontFamily: 'mont_bold',color: currentTheme == 'light' ? Colors.blueAccent : Colors.deepOrange),),
                     ],
                   ))
             ],
@@ -77,9 +99,9 @@ class _StandingScreenState extends State<StandingScreen> {
                                     child: Row(
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
-                                        isFirst ? const Icon(Icons.arrow_upward_outlined,size: 10,color: Colors.green,) :
-                                        isLast ? const Icon(Icons.arrow_downward_outlined,size: 10,color: Colors.red,) :
-                                        const Icon(Icons.minimize,size: 10,color: Colors.white,),
+                                        isFirst ? const Icon(Icons.arrow_upward_outlined,size: 10) :
+                                        isLast ? const Icon(Icons.arrow_downward_outlined,size: 10) :
+                                        const Icon(Icons.minimize,size: 10),
                                         Text(data[index]!.rank.toString(), style:  TextStyle(
                                             color: isFirst ? Colors.green : isLast ? Colors.red : Colors.white,fontFamily: 'mont_bold'),),
                                         const SizedBox(width: 10,),
@@ -91,7 +113,7 @@ class _StandingScreenState extends State<StandingScreen> {
                                         const SizedBox(width: 10,),
                                         Flexible(child: Text(
                                           data[index]!.team!.name!,
-                                          style: const TextStyle(color: Colors.white,fontFamily: 'mont_bold'),
+                                          style: const TextStyle(fontFamily: 'mont_bold'),
                                         ))
                                       ],
                                     )),
@@ -99,17 +121,16 @@ class _StandingScreenState extends State<StandingScreen> {
                                     child: Row(
                                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                       children: [
-                                        Text(data[index]!.all!.played.toString(),style: const TextStyle(color: Colors.white,fontFamily: 'mont_medium'),),
-                                        Text(data[index]!.all!.win.toString(),style: const TextStyle(color: Colors.white,fontFamily: 'mont_medium'),),
-                                        Text(data[index]!.all!.draw.toString(),style: const TextStyle(color: Colors.white,fontFamily: 'mont_medium'),),
-                                        Text(data[index]!.all!.lose.toString(),style: const TextStyle(color: Colors.white,fontFamily: 'mont_medium'),),
-                                        Text(data[index]!.points.toString(),style: const TextStyle(color: Colors.deepOrange,fontFamily: 'mont_medium'),),
+                                        Text(data[index]!.all!.played.toString(),style: const TextStyle(fontFamily: 'mont_medium'),),
+                                        Text(data[index]!.all!.win.toString(),style: const TextStyle(fontFamily: 'mont_medium'),),
+                                        Text(data[index]!.all!.draw.toString(),style: const TextStyle(fontFamily: 'mont_medium'),),
+                                        Text(data[index]!.all!.lose.toString(),style: const TextStyle(fontFamily: 'mont_medium'),),
+                                        Text(data[index]!.points.toString(),style: TextStyle(fontFamily: 'mont_medium',color: currentTheme == 'light' ? Colors.blueAccent : Colors.deepOrange),),
                                       ],
                                     )),
-
                               ],
                             ),
-                            const Divider(color: Colors.white24,)
+                            const Divider()
                           ],
                         ),
                       );
@@ -118,11 +139,11 @@ class _StandingScreenState extends State<StandingScreen> {
                 }
                 if (state is Error) {
                   return  Center(
-                    child: Image.asset("assets/images/no_data.png",color: Colors.blueAccent,height: 60,width: 60,),
+                    child: Image.asset("assets/images/no_data.png", color: currentTheme == 'light' ? Colors.black : Colors.white,height: 60,width: 60,),
                   );
                 }
                 return  Center(
-                  child: Image.asset("assets/images/no_data.png",color: Colors.blueAccent,height: 60,width: 60,),
+                  child: Image.asset("assets/images/no_data.png",color: currentTheme == 'light' ? Colors.black : Colors.white,height: 60,width: 60,),
                 );
               }),
         ))
@@ -130,3 +151,4 @@ class _StandingScreenState extends State<StandingScreen> {
     );
   }
 }
+

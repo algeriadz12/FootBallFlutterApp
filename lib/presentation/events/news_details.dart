@@ -50,7 +50,6 @@ class _NewsDetailsScreenState extends State<NewsDetailsScreen> {
           return MaterialApp(
             theme: provider.getTheme(),
             home: Scaffold(
-              backgroundColor: const Color(0xFF0F3460),
               body: SafeArea(
                 child: widget.articles == null ?
                 const Center(child: CircularProgressIndicator(color: Colors.deepOrange,),) :

@@ -1,11 +1,10 @@
 import 'dart:async';
-import 'dart:ffi';
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:football_app/presentation/bottom_bar_screen/live_score_screen.dart';
 import 'package:football_app/presentation/bottom_bar_screen/match_screen.dart';
 import 'package:football_app/presentation/bottom_bar_screen/standing_screen.dart';
+import 'package:football_app/storage/storage_manager.dart';
 import 'package:football_app/theme/theme_notifier.dart';
 import 'package:get/get.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
@@ -25,7 +24,8 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-
+  var currentTheme  = "";
+  /////
   final InAppPurchase _inAppPurchase = InAppPurchase.instance;
   bool _isAvailable = false;
   SharedPreferences? _sharedPreferences;
@@ -40,7 +40,7 @@ class _HomeScreenState extends State<HomeScreen> {
   var isOn = false;
   Icon icon = const Icon(Icons.toggle_off,color: Colors.black54,);
   final _screens = [
-    const StandingScreen(),
+    const StandingsScreen(),
     const LiveScoreScreen(),
     const NewsScreen(),
   ];
@@ -52,17 +52,146 @@ class _HomeScreenState extends State<HomeScreen> {
     _initialize();
   }
 
+
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<BlackThemeNotifier>(
+        builder: (context , provider , _){
+          return MaterialApp(
+            theme: provider.getTheme(),
+            debugShowCheckedModeBanner: false,
+            home: SafeArea(
+              child: Scaffold(
+                bottomNavigationBar: BottomNavigationBar(
+                  currentIndex: _currentIndex,
+                  selectedItemColor: currentTheme == "light" ? Colors.black : Colors.black12,
+                  unselectedItemColor: currentTheme == "light" ? Colors.black12 : Colors.black12,
+                  items:  [
+                    BottomNavigationBarItem(icon: Image.asset("assets/images/list.png",
+                      height: 20,width: 20,color: currentTheme == "light" ? Colors.black : Colors.white,),label: 'Rank'),
+                    BottomNavigationBarItem(icon: Image.asset("assets/images/score.png",
+                      height: 20,width: 20,color: currentTheme == "light" ? Colors.black : Colors.white,),label: 'Score'),
+                    BottomNavigationBarItem(icon: Image.asset("assets/images/news.png",
+                      height: 20,width: 20,color: currentTheme == "light" ? Colors.black : Colors.white,),label: 'News'),
+                  ],
+                  onTap: (index){
+                    setState(() {
+                      _currentIndex = index;
+                    });
+                  },
+                ),
+                drawer : Drawer(
+                    child: Column(
+                      children:  [
+                        DrawerHeader(
+                          child: Center(
+                            child: Image.asset("assets/images/laliga.png",height: 100,width: 100,),
+                          ),
+                        ),
+                        Column(
+                          children:  [
+                            StatefulBuilder(
+                              builder: (context,_){
+                                return ListTile(leading: const Icon(Icons.star_rate_outlined),
+                                  title:  const Text('Rate Us'),onTap: (){
+                                    Navigator.pop(context);
+                                    showDialog(context: context, barrierDismissible: true, builder: (context) => showRatingDialog(),);
+                                  },);
+                              },
+                            ),
+                            const Divider(),
+                            StatefulBuilder(
+                              builder: (context,_){
+                                return ListTile(leading: const Icon(Icons.apps),
+                                  title: const Text('More Apps'),onTap: (){
+                                    Scaffold.of(context).closeDrawer();
+                                  },);
+                              },
+                            ),
+                            const Divider(),
+                            Padding(
+                              padding: const EdgeInsets.only(left: 10),
+                              child:  Row(
+                                children: [
+                                  const Icon(Icons.dark_mode_outlined,size: 30,),
+                                  Expanded(child: SwitchListTile(
+                                      value: isOn,
+                                      title: const Text('App Theme'),
+                                      onChanged: (value){
+                                        isOn = !isOn;
+                                        if(isOn){
+                                          Fluttertoast.showToast(msg: "Theme is dark");
+                                          icon = const Icon(Icons.toggle_on,color: Colors.deepOrange);
+                                          StorageManager.saveData("dark");
+                                          provider.setDarkMode();
+                                        }
+                                        else {
+                                          Fluttertoast.showToast(msg: "Theme is light");
+                                          icon  = const Icon(Icons.toggle_off,color: Colors.black54,);
+                                          StorageManager.saveData("light");
+                                          provider.setLightMode();
+                                        }
+                                      }))
+                                ],
+                              ),
+                            )
+                          ],
+                        )
+                      ],
+                    )
+                ),
+                body: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.only(left: 8,right: 16,top: 16,bottom: 16),
+                      child: Row(
+                        children:  [
+                          StatefulBuilder(
+                            builder: (context,_){
+                              return IconButton(onPressed: (){
+                                Scaffold.of(context).openDrawer();
+                              }, icon: Image.asset("assets/images/drawer_icon.png",color: currentTheme == "light" ? Colors.black : Colors.white,height: 20,width: 20));
+                            },
+                          ),
+                          const Expanded(child: Text('La Liga',style: TextStyle(fontSize: 20,fontFamily: 'mont_bold'),)),
+                          GestureDetector(
+                            onTap: (){
+                              _buyProduct();
+                            },
+                            child: Image.asset("assets/images/remove_ad.png",color: currentTheme == "light" ? Colors.blueAccent : Colors.blueAccent,height: 25,width: 25,),
+                          )
+                        ],
+                      ),
+                    ),
+                    Expanded(
+                      child: _screens[_currentIndex],
+                    ),
+                    AdWidget(ad: _bannerAd)
+                  ],
+                ),
+              ),
+            )
+          );
+        }
+    );
+  }
+
+
+
   void initPrefs() async {
     _sharedPreferences = await SharedPreferences.getInstance();
     if(_sharedPreferences?.getString("theme") == "light"){
       setState(() {
         isOn = false;
         icon  = const Icon(Icons.toggle_off,color: Colors.black54);
+        currentTheme = "light";
       });
     }
     else if (_sharedPreferences?.getString("theme") == "dark"){
       isOn = true;
       icon = const Icon(Icons.toggle_on,color: Colors.deepOrange);
+      currentTheme = "dark";
     }
   }
 
@@ -74,13 +203,14 @@ class _HomeScreenState extends State<HomeScreen> {
         request: const AdRequest());
     _bannerAd.load();
   }
+
   var listener = BannerAdListener(
-  onAdLoaded: (Ad ad) => print('Ad loaded.'),
-  onAdFailedToLoad: (Ad ad, LoadAdError error) {
+    onAdLoaded: (Ad ad) => print('Ad loaded.'),
+    onAdFailedToLoad: (Ad ad, LoadAdError error) {
       ad.dispose();
     },
-  onAdOpened: (Ad ad) => print('Ad opened.'),
-  onAdClosed: (Ad ad) => print('Ad closed.'),);
+    onAdOpened: (Ad ad) => print('Ad opened.'),
+    onAdClosed: (Ad ad) => print('Ad closed.'),);
 
   // ADS
   Future<void> _initialize() async {
@@ -139,124 +269,8 @@ class _HomeScreenState extends State<HomeScreen> {
     _inAppPurchase.buyNonConsumable(purchaseParam: param);
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return  Consumer<BlackThemeNotifier>(
-        builder: (context , provider , _){
-          return MaterialApp(
-            theme: provider.getTheme(),
-            home: Scaffold(
-              bottomNavigationBar: BottomNavigationBar(
-                currentIndex: _currentIndex,
-                selectedItemColor: Colors.white,
-                unselectedItemColor: Colors.white54,
-                items:  [
-                  BottomNavigationBarItem(icon: Image.asset("assets/images/list.png",
-                    height: 20,width: 20,color: Colors.white,),label: 'Rank'),
-                  BottomNavigationBarItem(icon: Image.asset("assets/images/score.png",
-                    height: 20,width: 20,color: Colors.white,),label: 'Score'),
-                  BottomNavigationBarItem(icon: Image.asset("assets/images/news.png",
-                    height: 20,width: 20,color: Colors.white,),label: 'News'),
-                ],
-                onTap: (index){
-                  setState(() {
-                    _currentIndex = index;
-                  });
-                },
-              ),
-              drawer : createDrawer(context,isOn),
-              backgroundColor: const Color(0xFF16213E),
-              body: SafeArea(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.only(left: 8,right: 16,top: 16,bottom: 16),
-                      child: Row(
-                        children:  [
-                          StatefulBuilder(
-                            builder: (context,_){
-                              return IconButton(onPressed: (){
-                                Scaffold.of(context).openDrawer();
-                              }, icon: Image.asset("assets/images/drawer_icon.png",height: 20,width: 20,color: Colors.white,));
-                            },
-                          ),
-                          const Expanded(child: Text('La Liga',style: TextStyle(fontSize: 20,color: Colors.white,fontFamily: 'mont_bold'),)),
-                          GestureDetector(
-                            onTap: (){
-                              _buyProduct();
-                            },
-                            child: Image.asset("assets/images/remove_ad.png",height: 25,width: 25,color: Colors.blueAccent,),
-                          )
-                        ],
-                      ),
-                    ),
-                    Expanded(
-                      child: _screens[_currentIndex],
-                    ),
-                    AdWidget(ad: _bannerAd)
-                  ],
-                ),
-              ),
-            ),
-          );
-        }
-    );
-  }
 }
 
-Widget createDrawer(BuildContext context,bool isOn){
-  return Drawer(
-    backgroundColor: const Color(0xFF16213E),
-    child: Column(
-      children:  [
-         DrawerHeader(
-          child: Center(
-            child: Image.asset("assets/images/laliga.png",height: 100,width: 100,),
-          ),
-        ),
-        Column(
-          children:  [
-            const Divider(color: Colors.white,),
-            StatefulBuilder(
-              builder: (context,_){
-                return ListTile(leading: const Icon(Icons.star_rate_outlined,color: Colors.white,),
-                  title: const Text('Rate Us',style: TextStyle(color: Colors.white),),onTap: (){
-                    Navigator.pop(context);
-                    showDialog(context: context, barrierDismissible: true, builder: (context) => showRatingDialog(),);
-                  },);
-              },
-            ),
-            const Divider(color: Colors.white,),
-            StatefulBuilder(
-              builder: (context,_){
-                return ListTile(leading: const Icon(Icons.apps,color: Colors.white,),
-                  title: const Text('More Apps',style: TextStyle(color: Colors.white),),onTap: (){
-                     Scaffold.of(context).closeDrawer();
-                  },);
-              },
-            ),
-            const Divider(color: Colors.white,),
-            StatefulBuilder(
-              builder: (context,state){
-                 return Row(
-                   children:  [
-                     Expanded(child: ListTile(leading : const Icon(Icons.dark_mode_outlined),title: Text('App Theme'),)),
-                     SwitchListTile(
-                      value: isOn,
-                      onChanged: (value){
-
-                     })
-                   ],
-                 );
-              },
-            )
-          ],
-        )
-      ],
-    )
-  );
-}
 Widget showRatingDialog(){
   return RatingDialog(
     initialRating: 1.0,

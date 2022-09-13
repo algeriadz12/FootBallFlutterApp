@@ -9,15 +9,22 @@ class BlackThemeNotifier extends ChangeNotifier {
     primaryColor: Colors.black,
     brightness: Brightness.dark,
     backgroundColor: const Color(0xFF212121),
+    bottomNavigationBarTheme: const BottomNavigationBarThemeData(backgroundColor: Color(0xFF16213E)),
+    scaffoldBackgroundColor: const Color(0xFF16213E),
+    drawerTheme: const DrawerThemeData(backgroundColor: Color(0xFF16213E)),
     accentColor: Colors.white,
     accentIconTheme: const IconThemeData(color: Colors.black),
     dividerColor: Colors.white,
   );
+
   static final lightTheme = ThemeData(
     primarySwatch: Colors.grey,
     primaryColor: Colors.white,
     brightness: Brightness.light,
-    backgroundColor: const Color(0xFFE5E5E5),
+    bottomNavigationBarTheme: const BottomNavigationBarThemeData(backgroundColor: Colors.white),
+    drawerTheme: const DrawerThemeData(backgroundColor: Colors.white),
+    scaffoldBackgroundColor: Colors.white,
+    backgroundColor:  const Color(0xFFE5E5E5),
     accentColor: Colors.black,
     accentIconTheme: const IconThemeData(color: Colors.white),
     dividerColor: Colors.black54,
