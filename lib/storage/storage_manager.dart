@@ -14,4 +14,9 @@ class StorageManager {
     return obj;
   }
 
+  static void saveLocalization(String lang) async {
+    final prefs = await SharedPreferences.getInstance();
+    prefs.setString("language", lang);
+  }
+
 }

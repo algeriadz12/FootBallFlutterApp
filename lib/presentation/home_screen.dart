@@ -24,21 +24,21 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  var currentTheme  = "";
-  /////
+  var currentTheme  = "light";
   final InAppPurchase _inAppPurchase = InAppPurchase.instance;
   bool _isAvailable = false;
   SharedPreferences? _sharedPreferences;
   // Query products from google play store
   late  List<ProductDetails> _products   = [];
   // Query past purchases of the user
-  List<PurchaseDetails> _purchases = [];
+  AppNotifier appNotifier = AppNotifier();
+  final List<PurchaseDetails> _purchases = [];
   late StreamSubscription _streamSubscription;
   late BannerAd _bannerAd;
   final String testId = "com.taki.dz.app";
   var _currentIndex = 0;
   var isOn = false;
-  Icon icon = const Icon(Icons.toggle_off,color: Colors.black54,);
+  var isTranslated = false;
   final _screens = [
     const StandingsScreen(),
     const LiveScoreScreen(),
@@ -48,15 +48,15 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    loadAd();
+    _initPrefs();
     _initialize();
+    loadAd();
   }
-
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<BlackThemeNotifier>(
-        builder: (context , provider , _){
+    return Consumer<AppNotifier>(
+        builder: (context , provider , _ ){
           return MaterialApp(
             theme: provider.getTheme(),
             debugShowCheckedModeBanner: false,
@@ -64,15 +64,15 @@ class _HomeScreenState extends State<HomeScreen> {
               child: Scaffold(
                 bottomNavigationBar: BottomNavigationBar(
                   currentIndex: _currentIndex,
-                  selectedItemColor: currentTheme == "light" ? Colors.black : Colors.black12,
-                  unselectedItemColor: currentTheme == "light" ? Colors.black12 : Colors.black12,
+                  showSelectedLabels: true,
+                  showUnselectedLabels: true,
                   items:  [
                     BottomNavigationBarItem(icon: Image.asset("assets/images/list.png",
-                      height: 20,width: 20,color: currentTheme == "light" ? Colors.black : Colors.white,),label: 'Rank'),
+                      height: 20,width: 20,color: currentTheme == "light" ? Colors.black : Colors.white,),label: provider.rankTxt()),
                     BottomNavigationBarItem(icon: Image.asset("assets/images/score.png",
-                      height: 20,width: 20,color: currentTheme == "light" ? Colors.black : Colors.white,),label: 'Score'),
+                      height: 20,width: 20,color: currentTheme == "light" ? Colors.black : Colors.white,),label: provider.scoreTxt()),
                     BottomNavigationBarItem(icon: Image.asset("assets/images/news.png",
-                      height: 20,width: 20,color: currentTheme == "light" ? Colors.black : Colors.white,),label: 'News'),
+                      height: 20,width: 20,color: currentTheme == "light" ? Colors.black : Colors.white,),label: provider.newsTxt()),
                   ],
                   onTap: (index){
                     setState(() {
@@ -93,9 +93,9 @@ class _HomeScreenState extends State<HomeScreen> {
                             StatefulBuilder(
                               builder: (context,_){
                                 return ListTile(leading: const Icon(Icons.star_rate_outlined),
-                                  title:  const Text('Rate Us'),onTap: (){
+                                  title:   Text(provider.rateUsTxt()),onTap: (){
                                     Navigator.pop(context);
-                                    showDialog(context: context, barrierDismissible: true, builder: (context) => showRatingDialog(),);
+                                    showDialog(context: context, barrierDismissible: true, builder: (context) => showRatingDialog(provider),);
                                   },);
                               },
                             ),
@@ -103,38 +103,61 @@ class _HomeScreenState extends State<HomeScreen> {
                             StatefulBuilder(
                               builder: (context,_){
                                 return ListTile(leading: const Icon(Icons.apps),
-                                  title: const Text('More Apps'),onTap: (){
+                                  title:  Text(provider.moreAppTxt()),onTap: (){
                                     Scaffold.of(context).closeDrawer();
                                   },);
                               },
                             ),
                             const Divider(),
                             Padding(
-                              padding: const EdgeInsets.only(left: 10),
+                              padding: const EdgeInsets.only(left: 20),
                               child:  Row(
                                 children: [
-                                  const Icon(Icons.dark_mode_outlined,size: 30,),
+                                  const Icon(Icons.dark_mode_outlined,size: 25,),
                                   Expanded(child: SwitchListTile(
                                       value: isOn,
-                                      title: const Text('App Theme'),
+                                      title: Text(provider.appThemeTxt()),
                                       onChanged: (value){
                                         isOn = !isOn;
                                         if(isOn){
                                           Fluttertoast.showToast(msg: "Theme is dark");
-                                          icon = const Icon(Icons.toggle_on,color: Colors.deepOrange);
                                           StorageManager.saveData("dark");
                                           provider.setDarkMode();
                                         }
                                         else {
                                           Fluttertoast.showToast(msg: "Theme is light");
-                                          icon  = const Icon(Icons.toggle_off,color: Colors.black54,);
                                           StorageManager.saveData("light");
                                           provider.setLightMode();
                                         }
                                       }))
                                 ],
                               ),
-                            )
+                            ),
+                            const Divider(),
+                            Padding(
+                              padding: const EdgeInsets.only(left: 20),
+                              child:  Row(
+                                children: [
+                                  const Icon(Icons.language,size: 25,),
+                                  Expanded(child: SwitchListTile(
+                                      value: isTranslated,
+                                      title: Text(provider.appLanguage()),
+                                      onChanged: (value){
+                                        isTranslated = !isTranslated;
+                                        if(isTranslated){
+                                          Fluttertoast.showToast(msg: "Switched to French");
+                                          StorageManager.saveLocalization("FR");
+                                          provider.setLanguage("FR");
+                                        }
+                                        else {
+                                          Fluttertoast.showToast(msg: "Switched to english");
+                                          StorageManager.saveLocalization("EN");
+                                          provider.setLanguage("EN");
+                                        }
+                                      }))
+                                ],
+                              ),
+                            ),
                           ],
                         )
                       ],
@@ -151,7 +174,9 @@ class _HomeScreenState extends State<HomeScreen> {
                             builder: (context,_){
                               return IconButton(onPressed: (){
                                 Scaffold.of(context).openDrawer();
-                              }, icon: Image.asset("assets/images/drawer_icon.png",color: currentTheme == "light" ? Colors.black : Colors.white,height: 20,width: 20));
+                              }, icon: currentTheme == "light"
+                              ? Image.asset("assets/images/drawer_icon.png", color: Colors.black,height: 20,width: 20)
+                              : Image.asset("assets/images/drawer_icon.png",color : Colors.white70,height: 20,width: 20));
                             },
                           ),
                           const Expanded(child: Text('La Liga',style: TextStyle(fontSize: 20,fontFamily: 'mont_bold'),)),
@@ -177,21 +202,34 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  void _initPrefs() async {
 
-
-  void initPrefs() async {
     _sharedPreferences = await SharedPreferences.getInstance();
+    //// THEME
     if(_sharedPreferences?.getString("theme") == "light"){
       setState(() {
-        isOn = false;
-        icon  = const Icon(Icons.toggle_off,color: Colors.black54);
         currentTheme = "light";
+        isOn = false;
       });
     }
     else if (_sharedPreferences?.getString("theme") == "dark"){
-      isOn = true;
-      icon = const Icon(Icons.toggle_on,color: Colors.deepOrange);
-      currentTheme = "dark";
+      setState(() {
+        currentTheme = "dark";
+        isOn = true;
+      });
+    }
+
+    //// LANGUAGE
+    if(_sharedPreferences?.getString("language") == "EN"){
+      setState(() {
+        isTranslated = false;
+      });
+    }
+    else if (_sharedPreferences?.getString("language") == "FR"){
+      setState(() {
+        isTranslated = true;
+      });
+
     }
   }
 
@@ -271,14 +309,14 @@ class _HomeScreenState extends State<HomeScreen> {
 
 }
 
-Widget showRatingDialog(){
+Widget showRatingDialog(AppNotifier provider){
   return RatingDialog(
     initialRating: 1.0,
-    title: const Text('Give Us A Rating', textAlign: TextAlign.center, style: TextStyle(fontSize: 25, fontWeight: FontWeight.bold,),),
-    message: const Text('Tap a star to set your rating ..', textAlign: TextAlign.center, style: TextStyle(fontSize: 15),),
+    title:  Text(provider.giveRatingTxt(), textAlign: TextAlign.center, style: TextStyle(fontSize: 25, fontWeight: FontWeight.bold,),),
+    message:  Text(provider.tapTxt(), textAlign: TextAlign.center, style: TextStyle(fontSize: 15),),
     image: const FlutterLogo(size: 100),
-    submitButtonText: 'Submit',
-    commentHint: 'What do you think about our app!',
+    submitButtonText: provider.submitTxt(),
+    commentHint: provider.whatDoYouThink(),
     onCancelled: () => print('cancelled'),
     onSubmitted: (response) async {
         var url = "https://play.google.com/store/apps/details?id=com.kitkagames.fallbuddies&hl=en&gl=US";

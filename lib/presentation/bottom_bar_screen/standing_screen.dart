@@ -64,7 +64,7 @@ class _StandingsScreenState extends State<StandingsScreen> {
                       const Text('W',style: TextStyle(fontFamily: 'mont_bold'),),
                       const Text('D',style: TextStyle(fontFamily: 'mont_bold'),),
                       const Text('L',style: TextStyle(fontFamily: 'mont_bold'),),
-                      Text('PT',style: TextStyle(fontFamily: 'mont_bold',color: currentTheme == 'light' ? Colors.blueAccent : Colors.deepOrange),),
+                      Text('PT',style: TextStyle(fontFamily: 'mont_bold',color: currentTheme == 'light' ? Colors.deepOrange : Colors.deepOrange),),
                     ],
                   ))
             ],
@@ -103,13 +103,12 @@ class _StandingsScreenState extends State<StandingsScreen> {
                                         isLast ? const Icon(Icons.arrow_downward_outlined,size: 10) :
                                         const Icon(Icons.minimize,size: 10),
                                         Text(data[index]!.rank.toString(), style:  TextStyle(
-                                            color: isFirst ? Colors.green : isLast ? Colors.red : Colors.white,fontFamily: 'mont_bold'),),
+                                            color: isFirst ? Colors.green
+                                                : isLast ? Colors.red
+                                                : currentTheme == 'light' ? Colors.black : Colors.white,fontFamily: 'mont_bold'),),
                                         const SizedBox(width: 10,),
-                                        Image.network(
-                                          data[index]!.team!.logo!,
-                                          height: 25,
-                                          width: 25,
-                                        ),
+                                        data[index]!.team!.logo != null ? Image.network(data[index]!.team!.logo!,height: 25, width: 25,) :
+                                          Image.asset("assets/images/team.png",height: 25, width: 25,),
                                         const SizedBox(width: 10,),
                                         Flexible(child: Text(
                                           data[index]!.team!.name!,

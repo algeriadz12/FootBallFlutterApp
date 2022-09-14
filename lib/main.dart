@@ -8,18 +8,22 @@ import 'package:football_app/presentation/splash_screen.dart';
 import 'package:football_app/theme/theme_notifier.dart';
 import 'package:get/get.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'domain/repository/app_repo.dart';
 
-
-void main() {
+String language = "";
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  var prefs = await SharedPreferences.getInstance();
+  language = prefs.getString("language") ?? "EN";
   runApp(MultiProvider(
     providers: [
       BlocProvider<MainBloc>(
         create: (context) => MainBloc(appRepository: AppRepository(authService: AuthService()), leagueId: 141,seasonId: 2022) ,
       ),
-      ChangeNotifierProvider<BlackThemeNotifier>(
-        create: (context) =>  BlackThemeNotifier(),
+      ChangeNotifierProvider<AppNotifier>(
+        create: (context) =>  AppNotifier(),
         child: const MyApp(),
       ),
     ],
@@ -32,7 +36,7 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<BlackThemeNotifier>(
+    return Consumer<AppNotifier>(
       builder: (context , provider ,_){
         return GetMaterialApp(
           home: const HomeScreen(),

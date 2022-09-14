@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../utils.dart';
 
@@ -20,11 +21,13 @@ class NewsDetailsScreen extends StatefulWidget {
 
 class _NewsDetailsScreenState extends State<NewsDetailsScreen> {
   late BannerAd _bannerAd;
-
+  var currentTheme  = "light";
+  SharedPreferences? _sharedPreferences;
   @override
   void initState() {
     super.initState();
     loadAd();
+    initPrefs();
   }
 
   void loadAd(){
@@ -36,6 +39,20 @@ class _NewsDetailsScreenState extends State<NewsDetailsScreen> {
     _bannerAd.load();
   }
 
+  void initPrefs() async {
+    _sharedPreferences = await SharedPreferences.getInstance();
+    if(_sharedPreferences?.getString("theme") == "light"){
+      setState(() {
+        currentTheme = "light";
+      });
+    }
+    else if (_sharedPreferences?.getString("theme") == "dark"){
+      setState(() {
+        currentTheme = "dark";
+      });
+    }
+  }
+
   var listener = BannerAdListener(
     onAdLoaded: (Ad ad) => print('Ad loaded.'),
     onAdFailedToLoad: (Ad ad, LoadAdError error) {
@@ -45,13 +62,14 @@ class _NewsDetailsScreenState extends State<NewsDetailsScreen> {
     onAdClosed: (Ad ad) => print('Ad closed.'),);
   @override
   Widget build(BuildContext context) {
-    return Consumer<BlackThemeNotifier>(
+    return Consumer<AppNotifier>(
         builder: (context , provider , _){
           return MaterialApp(
             theme: provider.getTheme(),
-            home: Scaffold(
-              body: SafeArea(
-                child: widget.articles == null ?
+            debugShowCheckedModeBanner: false,
+            home: SafeArea(
+              child: Scaffold(
+                body: widget.articles == null ?
                 const Center(child: CircularProgressIndicator(color: Colors.deepOrange,),) :
                 SingleChildScrollView(
                   child: Column(
@@ -60,7 +78,8 @@ class _NewsDetailsScreenState extends State<NewsDetailsScreen> {
                       Image.network(widget.articles!.urlToImage!,width: double.infinity,height: 250,fit: BoxFit.cover,),
                       Padding(
                         padding: const EdgeInsets.only(top: 20,left: 15,right: 15),
-                        child: Text(widget.articles!.title!,maxLines : 3 ,style: const TextStyle(color: Colors.white,fontSize: 20,fontFamily: 'mont_bold'),),
+                        child: Text(widget.articles!.title!,maxLines : 3 ,style:  TextStyle(fontSize: 20,fontFamily: 'mont_bold',
+                            color: currentTheme == 'light' ?  Colors.black87 : Colors.white ),),
                       ),
                       Padding(
                         padding: const EdgeInsets.only(left: 8,right: 8,top: 15),
@@ -98,11 +117,12 @@ class _NewsDetailsScreenState extends State<NewsDetailsScreen> {
                                   color: Colors.green,
                                   borderRadius: BorderRadius.circular(20)
                               ),
-                              child: Text('Source : ${widget.articles!.source!.name!}',style: const TextStyle(color: Colors.white,fontSize: 16,fontFamily: 'mont_medium'),))
+                              child: Text('Source : ${widget.articles!.source!.name!}',style: const TextStyle(color: Colors.white,fontSize: 14,fontFamily: 'mont_medium'),))
                       ),
                       Padding(
                         padding: const EdgeInsets.only(left: 8,right: 8,top: 15),
-                        child: Text(widget.articles!.description!,style: const TextStyle(color: Colors.white,fontSize: 16,fontFamily: 'mont_medium'),),
+                        child: Text(widget.articles!.description!,style:  TextStyle(fontSize: 16,fontFamily: 'mont_medium',
+                            color: currentTheme == 'light' ? Colors.black87 : Colors.white),),
                       ),
                       const SizedBox(height: 20,),
                       AdWidget(ad: _bannerAd)
